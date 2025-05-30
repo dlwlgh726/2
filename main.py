@@ -31,7 +31,10 @@ for _, row in df.iterrows():
     folium.Marker(
         location=[row['Latitude'], row['Longitude']],
         popup=f"Cluster {row['Cluster']}",
-        icon=folium.Icon(color=colors[row['Cluster'] % len(colors)])
+        cluster_id = int(row['Cluster'])  # 정수로 변환
+
+icon=folium.Icon(color=colors[cluster_id % len(colors)])
+
     ).add_to(marker_cluster)
 
 folium_static(m)
