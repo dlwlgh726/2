@@ -1,40 +1,59 @@
 import streamlit as st
 import pandas as pd
-import folium
-from folium.plugins import MarkerCluster
-from streamlit_folium import folium_static
+from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+import folium
+from streamlit_folium import st_folium
 
-# 데이터 로딩
-df = pd.read_csv("Delivery.csv")  # 파일명 수정
+st.title("📍 배송 위치 자동 군집 분석 (Folium 지도 시각화)")
 
-st.title("🗺️ 위치 기반 배송 군집 분석")
+@st.cache_data
+def load_data():
+    return pd.read_csv("Delivery.csv")
 
-# 결측치 제거
-df = df.dropna(subset=['Latitude', 'Longitude'])
+df = load_data()
 
-# 클러스터 수 선택
-k = st.slider("군집 수 (K)", min_value=2, max_value=10, value=3)
+st.subheader("📄 데이터 미리보기")
+st.dataframe(df)
 
-# KMeans 적용
-kmeans = KMeans(n_clusters=k, random_state=42, n_init='auto')
-df['Cluster'] = kmeans.fit_predict(df[['Latitude', 'Longitude']])
+lat_col = "Latitude"
+lon_col = "Longitude"
 
-# 지도 생성
-st.subheader("📍 Folium 지도 시각화")
-m = folium.Map(location=[df['Latitude'].mean(), df['Longitude'].mean()], zoom_start=12)
-marker_cluster = MarkerCluster().add_to(m)
+if lat_col not in df.columns or lon_col not in df.columns:
+    st.error("위치 정보가 누락되었습니다 (Latitude / Longitude 필요).")
+    st.stop()
 
-# 마커 표시
-colors = ['red', 'blue', 'green', 'purple', 'orange', 'darkred', 'lightblue', 'beige', 'pink', 'gray']
-for _, row in df.iterrows():
-    folium.Marker(
-        location=[row['Latitude'], row['Longitude']],
-        popup=f"Cluster {row['Cluster']}",
-        cluster_id = int(row['Cluster'])  # 정수로 변환
+st.sidebar.header("⚙️ 군집 분석 설정")
+n_clusters = st.sidebar.slider("군집 수 (K)", 2, 10, 3)
 
-icon=folium.Icon(color=colors[cluster_id % len(colors)])
+X = df[[lat_col, lon_col]].dropna()
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
-    ).add_to(marker_cluster)
+kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+labels = kmeans.fit_predict(X_scaled)
+X_result = df.loc[X.index].copy()
+X_result["Cluster"] = labels
 
-folium_static(m)
+center_lat = X_result[lat_col].mean()
+center_lon = X_result[lon_col].mean()
+
+m = folium.Map(location=[center_lat, center_lon], zoom_start=11)
+colors = [
+    "red", "blue", "green", "purple", "orange", "darkred",
+    "lightblue", "pink", "gray", "cadetblue"
+]
+
+for _, row in X_result.iterrows():
+    cluster_id = int(row['Cluster'])  # 정수로 변환
+    folium.CircleMarker(
+        location=[row[lat_col], row[lon_col]],
+        radius=5,
+        color=colors[cluster_id % len(colors)],
+        fill=True,
+        fill_opacity=0.7,
+        popup=f"Cluster {cluster_id}"
+    ).add_to(m)
+
+st.subheader("🌍 군집 결과 지도")
+st_folium(m, width=700, height=500)
