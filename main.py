@@ -6,7 +6,7 @@ from streamlit_folium import folium_static
 from sklearn.cluster import KMeans
 
 # 데이터 로딩
-df = pd.read_csv("Delivery - Delivery.csv")
+df = pd.read_csv("Delivery.csv")  # 파일명 수정
 
 st.title("🗺️ 위치 기반 배송 군집 분석")
 
