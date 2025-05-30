@@ -23,8 +23,8 @@ if lat_col not in df.columns or lon_col not in df.columns:
     st.error("위치 정보가 누락되었습니다 (Latitude / Longitude 필요).")
     st.stop()
 
-st.sidebar.header("⚙️ 군집 분석 설정")
-n_clusters = st.sidebar.slider("군집 수 (K)", 2, 10, 3)
+# 여기서 군집 수 선택 슬라이더 (메인 화면)
+n_clusters = st.slider("군집 수 (K)", 2, 10, 3)
 
 X = df[[lat_col, lon_col]].dropna()
 scaler = StandardScaler()
